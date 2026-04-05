@@ -79,7 +79,8 @@ def bank_tag(bank_name: str) -> str:
  S_COST_SOM_SHOW, S_MANAGER, S_CONTRACT, S_CONTRACT_PHOTO,
  S_EXPERT, S_PACKAGE, S_SEMESTER, S_CITY, S_SEMINAR, S_CERT, S_CONFIRM) = range(16)
 
-(P_SEARCH, P_SELECT, P_DATE, P_AMOUNT, P_METHOD, P_RATE, P_EXPERT, P_NOTE, P_RECEIPT_PHOTO, P_CONFIRM) = range(100, 110)
+# P_RATE убран
+(P_SEARCH, P_SELECT, P_DATE, P_AMOUNT, P_METHOD, P_EXPERT, P_NOTE, P_RECEIPT_PHOTO, P_CONFIRM) = range(100, 109)
 
 MAIN_MENU = 200
 
@@ -263,9 +264,8 @@ def summary_payment(d: dict) -> str:
         f"👤 ФИО: {d.get('fio','—')}\n"
         f"🧑‍💼 Принимает оплату: {d.get('expert','—')}\n"
         f"📅 Дата оплаты: {d.get('date','—')}\n"
-        f"💲 Сумма: {d.get('amount','—')}\n"
+        f"💲 Оплата в сомах: {d.get('amount','—')}\n"
         f"💳 Способ: {d.get('method','—')}\n"
-        f"💲 Курс валют: {d.get('rate','—')}\n"
         f"📝 Примечание: {d.get('note','—') or '—'}\n"
         f"🧾 Фото чека: {n_receipt} шт.\n"
     )
@@ -309,9 +309,8 @@ def group_msg_receipt(d: dict, sender: str, history: list) -> str:
         "",
         d.get("fio", ""),
         f"Принимает оплату: {d.get('expert', '—')}",
-        f"Сумма: {d.get('amount', '')}",
+        f"Оплата в сомах: {d.get('amount', '')}",
         f"Способ: {d.get('method', '')}",
-        f"Курс валют: {d.get('rate', '—')}",
         f"Дата: {d.get('date', '')}",
     ]
     if d.get("note"):
@@ -736,7 +735,7 @@ async def p_date(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return P_SEARCH
     ctx.user_data["p"]["date"] = update.message.text
     await update.message.reply_text(
-        "💲 *Сумма* оплаты:",
+        "💲 *Оплата в сомах*:",
         parse_mode="Markdown",
         reply_markup=text_kb()
     )
@@ -756,21 +755,9 @@ async def p_amount(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def p_method(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if update.message.text == "⬅️ Назад":
-        await update.message.reply_text("💲 Сумма:", reply_markup=text_kb())
+        await update.message.reply_text("💲 Оплата в сомах:", reply_markup=text_kb())
         return P_AMOUNT
     ctx.user_data["p"]["method"] = update.message.text
-    await update.message.reply_text(
-        "💲 Введите *курс валют* (например: 103.5):",
-        parse_mode="Markdown",
-        reply_markup=text_kb()
-    )
-    return P_RATE
-
-async def p_rate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if update.message.text == "⬅️ Назад":
-        await update.message.reply_text("💳 Способ оплаты:", reply_markup=kb(ACCOUNTS, 2))
-        return P_METHOD
-    ctx.user_data["p"]["rate"] = update.message.text
     if ctx.user_data["p"].get("expert"):
         ctx.user_data["p"]["_expert_from_reg"] = True
         await update.message.reply_text(
@@ -787,8 +774,8 @@ async def p_rate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def p_expert(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if update.message.text == "⬅️ Назад":
-        await update.message.reply_text("💲 Курс валют:", reply_markup=text_kb())
-        return P_RATE
+        await update.message.reply_text("💳 Способ оплаты:", reply_markup=kb(ACCOUNTS, 2))
+        return P_METHOD
     ctx.user_data["p"]["expert"] = update.message.text
     await update.message.reply_text(
         "📝 Примечание (или Пропустить):",
@@ -799,8 +786,8 @@ async def p_expert(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def p_note(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if update.message.text == "⬅️ Назад":
         if ctx.user_data["p"].get("_expert_from_reg"):
-            await update.message.reply_text("💲 Курс валют:", reply_markup=text_kb())
-            return P_RATE
+            await update.message.reply_text("💳 Способ оплаты:", reply_markup=kb(ACCOUNTS, 2))
+            return P_METHOD
         await update.message.reply_text("🧑‍💼 Кто принимает оплату:", reply_markup=kb(EXPERTS, 1))
         return P_EXPERT
     ctx.user_data["p"]["note"] = "" if update.message.text == "Пропустить" else update.message.text
@@ -942,7 +929,6 @@ def main():
             P_DATE:           [CANCEL, MessageHandler(filters.TEXT & ~filters.COMMAND, p_date)],
             P_AMOUNT:         [CANCEL, MessageHandler(filters.TEXT & ~filters.COMMAND, p_amount)],
             P_METHOD:         [CANCEL, MessageHandler(filters.TEXT & ~filters.COMMAND, p_method)],
-            P_RATE:           [CANCEL, MessageHandler(filters.TEXT & ~filters.COMMAND, p_rate)],
             P_EXPERT:         [CANCEL, MessageHandler(filters.TEXT & ~filters.COMMAND, p_expert)],
             P_NOTE:           [CANCEL, MessageHandler(filters.TEXT & ~filters.COMMAND, p_note)],
             P_RECEIPT_PHOTO:  [CANCEL, MessageHandler((filters.PHOTO | filters.TEXT) & ~filters.COMMAND, p_receipt_photo)],
